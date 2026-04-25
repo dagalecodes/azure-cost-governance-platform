@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Cost Governance Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e17;
+    --bg-card: #0f1420;
+    --bg-card2: #141926;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,120,255,0.4);
+    --text: #e8eaf0;
+    --text-muted: #6b7280;
+    --text-dim: #374151;
+    --blue: #3b82f6;
+    --blue-light: #60a5fa;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --teal: #14b8a6;
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--blue);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 16px; height: 16px; }
+
+  .brand {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  .brand span { color: var(--text-muted); font-weight: 300; }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .last-refresh {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .main {
+    padding: 24px 28px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .page-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .page-sub {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--text);
+  }
+
+  .page-sub strong { font-weight: 500; }
+
+  .period-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--blue-light);
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .metric-card:hover { border-color: rgba(255,255,255,0.14); }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--blue));
+    opacity: 0.6;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .metric-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .delta-up { background: rgba(239,68,68,0.12); color: #f87171; }
+  .delta-down { background: rgba(16,185,129,0.12); color: #34d399; }
+  .delta-neutral { background: rgba(107,114,128,0.15); color: var(--text-muted); }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .card-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 200px;
+  }
+
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .resource-list { list-style: none; }
+
+  .resource-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .resource-item:last-child { border-bottom: none; }
+
+  .resource-name {
+    font-size: 12px;
+    color: var(--text);
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .resource-type {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 2px;
+  }
+
+  .resource-cost {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .resource-bar-wrap {
+    width: 60px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    margin-left: auto;
+  }
+
+  .resource-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--blue);
+  }
+
+  .anomaly-list { list-style: none; }
+
+  .anomaly-item {
+    padding: 10px 12px;
+    border-radius: 7px;
+    border: 1px solid rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.05);
+    margin-bottom: 8px;
+  }
+
+  .anomaly-item:last-child { margin-bottom: 0; }
+
+  .anomaly-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .anomaly-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #f87171;
+  }
+
+  .anomaly-spike {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: #f87171;
+  }
+
+  .anomaly-detail {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .anomaly-none {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .anomaly-none-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--green);
+  }
+
+  .forecast-bar-wrap {
+    margin-bottom: 16px;
+  }
+
+  .forecast-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .forecast-track {
+    height: 6px;
+    background: var(--bg-card2);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .forecast-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+  }
+
+  .forecast-projection {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(245,158,11,0.07);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 7px;
+    font-size: 12px;
+    color: #fbbf24;
+    line-height: 1.5;
+  }
+
+  .forecast-projection strong {
+    font-family: var(--mono);
+    font-size: 15px;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .owner-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .owner-row:last-child { margin-bottom: 0; }
+
+  .owner-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .owner-name {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .owner-env {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .owner-cost {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+  }
+
+  .owner-track {
+    width: 80px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .owner-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 20px 28px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    margin-left: 6px;
+  }
+
+  @media (max-width: 900px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .bottom-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 12L8 4L14 12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 9H11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand">Azure Cost Governance <span>/ Platform</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-dot">
+      <div class="dot"></div>
+      <span>System operational</span>
+    </div>
+    <div class="last-refresh" id="refreshTime">Refreshed: --</div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Subscription Overview</div>
+      <div class="page-sub">Azure subscription 1 <strong>/ Cost Intelligence</strong></div>
+    </div>
+    <div class="period-badge" id="currentPeriod">Loading...</div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card" style="--accent-color: #3b82f6;">
+      <div class="metric-label">Month-to-date</div>
+      <div class="metric-value">$0.03</div>
+      <span class="metric-delta delta-down">↓ 94% vs last month</span>
+    </div>
+    <div class="metric-card" style="--accent-color: #10b981;">
+      <div class="metric-label">Budget remaining</div>
+      <div class="metric-value">$9.97</div>
+      <span class="metric-delta delta-neutral">of $10.00 budget</span>
+    </div>
+    <div class="metric-card" style="--accent-color: #f59e0b;">
+      <div class="metric-label">Projected (EOM)</div>
+      <div class="metric-value">$0.09</div>
+      <span class="metric-delta delta-down">↓ Under budget</span>
+    </div>
+    <div class="metric-card" style="--accent-color: #14b8a6;">
+      <div class="metric-label">Active anomalies</div>
+      <div class="metric-value">0</div>
+      <span class="metric-delta delta-down">All clear</span>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Cost trend — last 14 days</div>
+        <div class="card-tag">daily · USD</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="trendChart" role="img" aria-label="Line chart showing Azure daily cost over the last 14 days">Daily cost data over 14 days</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Cost by service</div>
+        <div class="card-tag">MTD</div>
+      </div>
+      <div class="chart-wrap" style="height: 180px;">
+        <canvas id="serviceChart" role="img" aria-label="Doughnut chart showing cost breakdown by Azure service">Cost breakdown by service</canvas>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap: 10px; margin-top: 12px;">
+        <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted);"><span style="width:8px;height:8px;border-radius:2px;background:#3b82f6;"></span>Storage</span>
+        <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted);"><span style="width:8px;height:8px;border-radius:2px;background:#10b981;"></span>Functions</span>
+        <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted);"><span style="width:8px;height:8px;border-radius:2px;background:#f59e0b;"></span>Monitor</span>
+        <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted);"><span style="width:8px;height:8px;border-radius:2px;background:#8b5cf6;"></span>Logic Apps</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top resources by cost</div>
+        <div class="card-tag">MTD</div>
+      </div>
+      <ul class="resource-list">
+        <li class="resource-item">
+          <div>
+            <div class="resource-name">st-cost-governance</div>
+            <div class="resource-type">Storage Account</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="resource-cost">$0.01</div>
+            <div class="resource-bar-wrap"><div class="resource-bar" style="width:100%;"></div></div>
+          </div>
+        </li>
+        <li class="resource-item">
+          <div>
+            <div class="resource-name">logic-cost-alert</div>
+            <div class="resource-type">Logic App</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="resource-cost">$0.01</div>
+            <div class="resource-bar-wrap"><div class="resource-bar" style="width:80%;background:#10b981;"></div></div>
+          </div>
+        </li>
+        <li class="resource-item">
+          <div>
+            <div class="resource-name">rg-cost-governance</div>
+            <div class="resource-type">Resource Group</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="resource-cost">$0.01</div>
+            <div class="resource-bar-wrap"><div class="resource-bar" style="width:60%;background:#f59e0b;"></div></div>
+          </div>
+        </li>
+        <li class="resource-item">
+          <div>
+            <div class="resource-name">budget-cost-governance</div>
+            <div class="resource-type">Budget Alert</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="resource-cost">$0.00</div>
+            <div class="resource-bar-wrap"><div class="resource-bar" style="width:10%;background:#8b5cf6;"></div></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active anomalies</div>
+        <div class="card-tag">live · 7d avg</div>
+      </div>
+      <div class="anomaly-none">
+        <div class="anomaly-none-icon">✓</div>
+        <div style="font-weight:500; color: var(--green); margin-bottom:4px;">No anomalies detected</div>
+        <div>All spending within normal range<br>vs 7-day rolling average</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Budget forecast</div>
+        <div class="card-tag">EOM projection</div>
+      </div>
+
+      <div class="forecast-bar-wrap">
+        <div class="forecast-label">
+          <span>Spent</span>
+          <span style="font-family:var(--mono);">$0.03 / $10.00</span>
+        </div>
+        <div class="forecast-track">
+          <div class="forecast-fill" style="width: 0.3%; background: var(--green);"></div>
+        </div>
+      </div>
+
+      <div class="forecast-bar-wrap">
+        <div class="forecast-label">
+          <span>Projected (EOM)</span>
+          <span style="font-family:var(--mono);">$0.09 / $10.00</span>
+        </div>
+        <div class="forecast-track">
+          <div class="forecast-fill" style="width: 0.9%; background: var(--amber);"></div>
+        </div>
+      </div>
+
+      <div class="forecast-projection">
+        <strong>Well under budget</strong>
+        At current burn rate, estimated end-of-month spend is <strong style="font-size:13px;">$0.09</strong> — 99.1% under the $10.00 monthly budget.
+      </div>
+
+      <div style="margin-top: 16px;">
+        <div class="card-title" style="margin-bottom:10px;">Cost by owner</div>
+        <div class="owner-row">
+          <div class="owner-avatar" style="background:rgba(59,130,246,0.15);color:#60a5fa;">CD</div>
+          <div>
+            <div class="owner-name">christian dagale</div>
+            <div class="owner-env">dev · rg-cost-governance</div>
+          </div>
+          <div class="owner-cost">$0.03</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  Azure Cost Governance Platform · rg-cost-governance · Sub: 69d8cd24-****-****-****-49d33a2f9f1e
+  <span class="tag">Phase 1</span>
+  <span class="tag">v0.1.0</span>
+</footer>
+
+<script>
+  const now = new Date();
+  document.getElementById('refreshTime').textContent =
+    'Refreshed: ' + now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('currentPeriod').textContent =
+    now.toLocaleString('default', {month:'long', year:'numeric'});
+
+  const days = [];
+  const costs = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    days.push(d.toLocaleDateString('default', {month:'short', day:'numeric'}));
+    costs.push(parseFloat((Math.random() * 0.004 + 0.001).toFixed(4)));
+  }
+
+  new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Daily cost (USD)',
+        data: costs,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        borderWidth: 1.5,
+        pointRadius: 3,
+        pointBackgroundColor: '#3b82f6',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' $' + ctx.parsed.y.toFixed(4)
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#6b7280',
+            font: { size: 10, family: 'IBM Plex Mono' },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 7
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        },
+        y: {
+          ticks: {
+            color: '#6b7280',
+            font: { size: 10, family: 'IBM Plex Mono' },
+            callback: v => '$' + v.toFixed(3)
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('serviceChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Storage', 'Functions', 'Monitor', 'Logic Apps'],
+      datasets: [{
+        data: [40, 25, 20, 15],
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.label + ': ' + ctx.parsed + '%'
+          }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>
