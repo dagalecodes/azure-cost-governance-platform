@@ -217,3 +217,10 @@ azure-cost-governance-platform/
 ## Storage Account
 Name: stcostdashboar6431
 Resource Group: rg-cost-governance
+
+## Managed Identity
+Function App:  func-cost-governance
+Object ID:     fba8ce8b-ad20-411b-85c6-85f028023570
+Roles assigned:
+  - Cost Management Reader → Azure subscription 1
+  - Storage Blob Data Contributor → stcostdashboard6431
