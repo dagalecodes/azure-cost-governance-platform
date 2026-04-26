@@ -8,8 +8,8 @@
 🌐 https://stcostdashboard6431.z13.web.core.windows.net
 
 ## Problem
-Companies move to the cloud expecting savings but receive 
-unexpected bills with no visibility, no automation, and no 
+Companies move to the cloud expecting savings but receive
+unexpected bills with no visibility, no automation, and no
 accountability over who is spending what.
 
 ## Solution
@@ -46,11 +46,12 @@ Static Web Dashboard
 ## Progress
 - [x] Phase 1 — Foundation, Budget Alerts, Logic Apps, Dashboard
 - [x] Phase 2 — Azure Functions, Real Cost Data, Log Analytics, KQL
-- [ ] Phase 3 — Anomaly Detection + Auto-Remediation
-- [ ] Phase 4 — Portfolio Polish
+- [x] Phase 3 — Anomaly Detection deployed and working
+- [ ] Phase 4 — Auto-Remediation + Tagging Policy
+- [ ] Phase 5 — Portfolio Polish
 
 ## Resume Bullet
-Built a serverless Azure cost governance platform with automated 
-anomaly detection and remediation across Azure subscriptions. 
-Implemented caching and Managed Identity authentication for 
+Built a serverless Azure cost governance platform with automated
+anomaly detection and remediation across Azure subscriptions.
+Implemented caching and Managed Identity authentication for
 secure, high-performance cost intelligence.
