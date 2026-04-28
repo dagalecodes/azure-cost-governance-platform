@@ -55,3 +55,6 @@ Built a serverless Azure cost governance platform with automated
 anomaly detection and remediation across Azure subscriptions.
 Implemented caching and Managed Identity authentication for
 secure, high-performance cost intelligence.
+## Architecture
+
+![Architecture](./assets/architecture-diagram.png)
