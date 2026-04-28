@@ -176,16 +176,32 @@ def AnomalyDetector(anomalyTimer: func.TimerRequest) -> None:
 @app.route(route="test-anomaly", auth_level=func.AuthLevel.ANONYMOUS)
 def TestAnomaly(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("TestAnomaly triggered")
+
     test_anomaly = {
         "detected": datetime.datetime.utcnow().isoformat() + "Z",
-        "date": "20260426",
+        "date": datetime.date.today().strftime("%Y%m%d"),
         "todayCost": 0.0150,
         "sevenDayAvg": 0.0030,
         "spikePercent": 400.0,
         "threshold": 20,
         "status": "ANOMALY"
     }
+
     try:
+        # Write anomaly to Blob Storage
+        credential = DefaultAzureCredential()
+        blob_service = BlobServiceClient(
+            account_url=f"https://{STORAGE_ACCOUNT}.blob.core.windows.net",
+            credential=credential
+        )
+        container_client = blob_service.get_container_client(CONTAINER_NAME)
+        anomaly_blob = container_client.get_blob_client("latest-anomaly.json")
+        anomaly_blob.upload_blob(
+            json.dumps(test_anomaly, indent=2),
+            overwrite=True
+        )
+
+        # Also trigger Logic App
         payload = json.dumps(test_anomaly).encode('utf-8')
         req_obj = urllib.request.Request(
             LOGIC_APP_URL,
@@ -195,7 +211,7 @@ def TestAnomaly(req: func.HttpRequest) -> func.HttpResponse:
         )
         with urllib.request.urlopen(req_obj, timeout=30) as response:
             return func.HttpResponse(
-                f"Test anomaly triggered! Status: {response.status}",
+                f"Test anomaly triggered! Blob updated + Logic App status: {response.status}",
                 status_code=200
             )
     except Exception as e:
